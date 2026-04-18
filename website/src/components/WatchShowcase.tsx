@@ -5,11 +5,11 @@ import AnimatedHeading from "./ui/AnimatedHeading";
 
 export default function WatchShowcase() {
   const watches = [
-    { src: "/watch-smoked.png", alt: "Smoked Transparent", name: "solwear", desc: "Smoked" },
-    { src: "/watch-b.png", alt: "Variant B", name: "solwear", desc: "Edition B" },
-    { src: "/watch-g.png", alt: "Variant G", name: "solwear", desc: "Edition G" },
-    { src: "/watch-m.png", alt: "Variant M", name: "solwear", desc: "Edition M" },
-    { src: "/watch-v.png", alt: "Variant V", name: "solwear", desc: "Edition V" }
+    { src: "/solwear/watch-smoked.png", alt: "Smoked Transparent", name: "solwear", desc: "Smoked" },
+    { src: "/solwear/watch-b.png", alt: "Variant B", name: "solwear", desc: "Edition B" },
+    { src: "/solwear/watch-g.png", alt: "Variant G", name: "solwear", desc: "Edition G" },
+    { src: "/solwear/watch-m.png", alt: "Variant M", name: "solwear", desc: "Edition M" },
+    { src: "/solwear/watch-v.png", alt: "Variant V", name: "solwear", desc: "Edition V" }
   ];
 
   return (
