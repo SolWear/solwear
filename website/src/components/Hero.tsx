@@ -111,8 +111,8 @@ export default function Hero() {
         >
           <div className="relative animate-float">
             <Image
-              src="/watch-smoked.png"
-              alt="SolWear Watch"
+              src="/solwear/watch-m.png"
+              alt="SolWear Watches"
               width={340}
               height={420}
               className="relative z-10 drop-shadow-2xl"

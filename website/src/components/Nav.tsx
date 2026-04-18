@@ -47,7 +47,7 @@ export default function Nav() {
           className="flex items-center gap-2 text-white hover:text-white/80 transition-colors"
         >
           <Image
-            src="/solwear-logo-white.webp"
+            src="/solwear/solwear-logo-white.webp"
             alt="SolWear"
             width={22}
             height={22}

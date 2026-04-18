@@ -17,8 +17,8 @@ const socials = [
   {
     title: "Instagram",
     desc: "Hardware photos. Behind-the-scenes.",
-    href: "https://instagram.com/solwear.watch",
-    tag: "@solwear.watch",
+    href: "https://instagram.com/so1wear",
+    tag: "@so1wear",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
         <rect x="3" y="3" width="18" height="18" rx="5" />

@@ -29,7 +29,7 @@ export default function WatchShowcase() {
           >
             <div className="glass p-10 flex justify-center w-full">
               <Image
-                src="/watch-smoked.png"
+                src="/solwear/watch-smoked.png"
                 alt="SolWear Smoked Transparent"
                 width={220}
                 height={275}
@@ -52,7 +52,7 @@ export default function WatchShowcase() {
           >
             <div className="glass p-10 flex justify-center w-full">
               <Image
-                src="/watch-smoked.png"
+                src="/solwear/watch-smoked.png"
                 alt="SolWear Clear Transparent"
                 width={220}
                 height={275}
