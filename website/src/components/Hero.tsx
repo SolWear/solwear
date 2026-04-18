@@ -111,11 +111,11 @@ export default function Hero() {
         >
           <div className="relative animate-float">
             <Image
-              src="/solwear/watch-m.png"
+              src="/solwear/watch-hero.png"
               alt="SolWear Watches"
-              width={340}
-              height={420}
-              className="relative z-10 drop-shadow-2xl"
+              width={420}
+              height={500}
+              className="relative z-10 drop-shadow-2xl object-contain"
               priority
             />
             {/* Red dot on watch face */}

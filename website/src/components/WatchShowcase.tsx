@@ -29,8 +29,8 @@ export default function WatchShowcase() {
           >
             <div className="glass p-10 flex justify-center w-full">
               <Image
-                src="/solwear/watch-smoked.png"
-                alt="SolWear Smoked Transparent"
+                src="/solwear/watch-dark.png"
+                alt="SolWear Dark Version"
                 width={220}
                 height={275}
                 className="drop-shadow-2xl"
@@ -38,7 +38,7 @@ export default function WatchShowcase() {
             </div>
             <div className="text-center">
               <p className="text-white font-medium mb-1">solwear</p>
-              <p className="label-caps">Smoked Transparent</p>
+              <p className="label-caps">Dark Version</p>
             </div>
           </motion.div>
 
@@ -52,12 +52,11 @@ export default function WatchShowcase() {
           >
             <div className="glass p-10 flex justify-center w-full">
               <Image
-                src="/solwear/watch-smoked.png"
+                src="/solwear/watch-transparent.png"
                 alt="SolWear Clear Transparent"
                 width={220}
                 height={275}
                 className="drop-shadow-2xl"
-                style={{ filter: "brightness(1.35) contrast(0.85) saturate(0.7)" }}
               />
             </div>
             <div className="text-center">
