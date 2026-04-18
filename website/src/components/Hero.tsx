@@ -111,7 +111,7 @@ export default function Hero() {
         >
           <div className="relative animate-float">
             <Image
-              src="/solwear/watch-hero.png"
+              src="/solwear/sticker.webp"
               alt="SolWear Watches"
               width={420}
               height={500}
