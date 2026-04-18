@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import StarLogo from "./ui/StarLogo";
+import Image from "next/image";
 
 const links = [
   { label: "WATCH", href: "#watch" },
@@ -46,7 +46,13 @@ export default function Nav() {
           onClick={() => scrollTo("#watch")}
           className="flex items-center gap-2 text-white hover:text-white/80 transition-colors"
         >
-          <StarLogo size={18} />
+          <Image
+            src="/solwear-logo-white.webp"
+            alt="SolWear"
+            width={22}
+            height={22}
+            priority
+          />
           <span className="text-sm font-semibold tracking-[0.15em] lowercase">solwear</span>
         </button>
 

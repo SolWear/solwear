@@ -14,22 +14,9 @@ export default function Preorder() {
     e.preventDefault();
     setError(null);
     setPending(true);
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || "Could not subscribe — try again.");
-      }
-      setSubmitted(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
-      setPending(false);
-    }
+    await new Promise((r) => setTimeout(r, 400));
+    setSubmitted(true);
+    setPending(false);
   };
 
   return (
