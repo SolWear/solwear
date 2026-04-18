@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sw-bg: #0d0d0d;
+  --sw-red: #e0000f;
+  --sw-border: rgba(255, 255, 255, 0.10);
+  --sw-card: rgba(255, 255, 255, 0.05);
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--sw-bg);
+}
+
+body {
+  background-color: var(--sw-bg);
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 16px;
+  }
+
+  .glass-nav {
+    background: rgba(0, 0, 0, 0.50);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .hero-text {
+    font-size: clamp(2.2rem, 7vw, 6.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+
+  .label-caps {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #666;
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 0, 15, 0.7); }
+  50%       { box-shadow: 0 0 0 10px rgba(224, 0, 15, 0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(-2deg); }
+  50%       { transform: translateY(-12px) rotate(2deg); }
+}
+
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50%       { transform: translateY(8px); opacity: 1; }
+}
+
+.animate-pulse-red { animation: pulse-red 2s ease-in-out infinite; }
+.animate-float     { animation: float 6s ease-in-out infinite; }
+.animate-scroll    { animation: scroll-bounce 1.5s ease-in-out infinite; }
+
+::selection {
+  background: rgba(224, 0, 15, 0.3);
+  color: #fff;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0d0d0d; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }

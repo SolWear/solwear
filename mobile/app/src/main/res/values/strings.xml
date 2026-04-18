@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">solvare</string>
+    <!-- Не «гаманець для оплати» — менше плутанини з сервісом безконтактних платежів -->
+    <string name="hce_service_description">Solvare: емуляція NDEF Type 4 для підпису</string>
+    <string name="hce_aid_description">NDEF Tag Application</string>
+    <string name="hce_payment_conflict_hint">Якщо система повідомляє про конфлікт з оплатою: Налаштування → NFC → Безконтактні платежі — вимкніть зайвий сервіс за замовчуванням або залиште один (часто заважає вбудований гаманець разом із Solvare). На час тесту можна вибрати «Не використовувати» для оплати.</string>
+</resources>

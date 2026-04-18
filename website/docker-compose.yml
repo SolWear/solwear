@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  solwear-site:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SOLWEAR_DATA_DIR=/data
+    volumes:
+      - emails_data:/data
+    restart: unless-stopped
+
+volumes:
+  emails_data:
+    driver: local

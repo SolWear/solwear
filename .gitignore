@@ -1,0 +1,44 @@
+# Build artifacts
+.pio/
+.venv/
+venv/
+__pycache__/
+*.pyc
+node_modules/
+.next/
+out/
+build/
+dist/
+.gradle/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android build outputs
+*.apk
+*.aab
+*.keystore
+*.jks
+local.properties
+
+# Firmware artifacts
+*.uf2
+*.bin
+*.elf
+
+# Secrets
+.env
+.env.*
+*.pem
+credentials.json
+secrets.json
+
+# Database / persisted data
+emails.db
+emails.db-*

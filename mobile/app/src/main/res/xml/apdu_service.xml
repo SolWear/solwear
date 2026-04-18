@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/hce_service_description"
+    android:requireDeviceUnlock="false">
+
+    <aid-group
+        android:category="other"
+        android:description="@string/hce_aid_description">
+        <!-- NFC Forum Type 4 Tag Application (NDEF). Необходим, чтобы ОС маршрутизировала SELECT на наш сервис. -->
+        <aid-filter android:name="D2760000850101" />
+        <aid-filter android:name="F01234567890" />
+    </aid-group>
+</host-apdu-service>
