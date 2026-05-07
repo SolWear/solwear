@@ -1,6 +1,7 @@
 package com.example.solvare.terminal.nfc
 
 import android.nfc.cardemulation.HostApduService
+import android.nfc.NdefMessage
 import android.os.Bundle
 import android.util.Log
 import com.example.solvare.terminal.crypto.TerminalKeyManager
@@ -152,9 +153,32 @@ class SolvareHostApduService : HostApduService() {
             for (record in ndefMessage.records) {
                 val recordType = String(record.type)
                 if (record.tnf == android.nfc.NdefRecord.TNF_EXTERNAL_TYPE &&
+                    (recordType.equals("solvare:wallet", ignoreCase = true) ||
+                        recordType.equals("wallet", ignoreCase = true))
+                ) {
+                    val payload = String(record.payload).trim()
+                    val wallet = json.decodeFromString<WalletPayload>(payload)
+                    bridgeCallback?.invoke(BridgeEvent.WalletRead(wallet.pubkey, wallet.network))
+                    lastEvent = "SolWear wallet connected"
+                    eventCallback?.invoke(lastEvent!!)
+                    return
+                }
+                if (record.tnf == android.nfc.NdefRecord.TNF_EXTERNAL_TYPE &&
+                    (recordType.equals("solvare:sign_response", ignoreCase = true) ||
+                        recordType.equals("sign_response", ignoreCase = true))
+                ) {
+                    val payload = String(record.payload).trim()
+                    val response = json.decodeFromString<SignResponse>(payload)
+                    bridgeCallback?.invoke(BridgeEvent.SignatureRead(response.signature))
+                    lastEvent = "SolWear signature received"
+                    eventCallback?.invoke(lastEvent!!)
+                    return
+                }
+                if (record.tnf == android.nfc.NdefRecord.TNF_EXTERNAL_TYPE &&
                     (recordType.equals("solvare:sign_request", ignoreCase = true) ||
                         recordType.equals("sign_request", ignoreCase = true))
                 ) {
+                    if (bridgeCallback != null) return
                     val payload = String(record.payload).trim()
                     if (payload.isEmpty()) {
                         Log.w(TAG, "sign_request record with empty payload")
@@ -188,6 +212,7 @@ class SolvareHostApduService : HostApduService() {
             Log.e(TAG, "Error processing sign request", e)
             lastEvent = "Помилка підпису: ${e.message}"
             eventCallback?.invoke(lastEvent!!)
+            bridgeCallback?.invoke(BridgeEvent.Failure(e.message ?: e.javaClass.simpleName))
         }
     }
 
@@ -248,6 +273,11 @@ class SolvareHostApduService : HostApduService() {
         Log.d(TAG, "Reset to wallet mode")
     }
 
+    private fun replaceNdefFile(file: ByteArray) {
+        ndefFile = file
+        Log.d(TAG, "Replaced live NDEF file (${file.size} bytes)")
+    }
+
     private fun ByteArray.toHex(): String = joinToString("") { "%02X".format(it) }
 
     companion object {
@@ -273,6 +303,7 @@ class SolvareHostApduService : HostApduService() {
 
         var lastEvent: String? = null
         var eventCallback: ((String) -> Unit)? = null
+        var bridgeCallback: ((BridgeEvent) -> Unit)? = null
 
         @Volatile
         private var activeInstance: SolvareHostApduService? = null
@@ -283,10 +314,44 @@ class SolvareHostApduService : HostApduService() {
 
         /** Сброс NDEF на живом экземпляре HCE (если сервис уже поднят системой). */
         fun resetLiveServiceToWalletMode() {
+            bridgeCallback = null
             pendingNdefFile = null
             activeInstance?.resetToWalletMode()
         }
+
+        fun startBridgeWalletRead(callback: (BridgeEvent) -> Unit) {
+            bridgeCallback = callback
+            pendingNdefFile = byteArrayOf(0x00, 0x00)
+            activeInstance?.replaceNdefFile(pendingNdefFile!!)
+        }
+
+        fun startBridgeSignRequest(message: NdefMessage, callback: (BridgeEvent) -> Unit) {
+            bridgeCallback = callback
+            pendingNdefFile = buildNdefFile(message)
+            activeInstance?.replaceNdefFile(pendingNdefFile!!)
+        }
+
+        fun stopBridgeSession() {
+            bridgeCallback = null
+            pendingNdefFile = null
+            activeInstance?.resetToWalletMode()
+        }
+
+        private fun buildNdefFile(message: NdefMessage): ByteArray {
+            val messageBytes = message.toByteArray()
+            val out = ByteArrayOutputStream()
+            out.write((messageBytes.size shr 8) and 0xFF)
+            out.write(messageBytes.size and 0xFF)
+            out.write(messageBytes)
+            return out.toByteArray()
+        }
     }
+}
+
+sealed interface BridgeEvent {
+    data class WalletRead(val pubkey: String, val network: String) : BridgeEvent
+    data class SignatureRead(val signature: String) : BridgeEvent
+    data class Failure(val message: String) : BridgeEvent
 }
 
 @Serializable
