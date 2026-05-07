@@ -1,14 +1,14 @@
 package com.example.solvare.nfc
 
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Intent
-import android.util.Log
 import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
-import android.nfc.Tag
-import android.nfc.tech.Ndef
-import android.nfc.tech.IsoDep
-import android.os.Build
+import android.nfc.cardemulation.CardEmulation
+import android.util.Log
+import com.example.solvare.terminal.nfc.BridgeEvent
+import com.example.solvare.terminal.nfc.SolvareHostApduService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,23 +42,36 @@ class NfcSessionManager {
     private val _result = MutableStateFlow<NfcResult?>(null)
     val result: StateFlow<NfcResult?> = _result.asStateFlow()
 
-    /** Текст останньої помилки для UI та збіг з `adb logcat -s SolvareNfc`. */
     private val _lastErrorDetail = MutableStateFlow<String?>(null)
     val lastErrorDetail: StateFlow<String?> = _lastErrorDetail.asStateFlow()
-
-    private var currentMode: NfcMode = NfcMode.READ_WALLET
-    private var pendingSignRequest: NdefMessage? = null
 
     private val _mode = MutableStateFlow(NfcMode.READ_WALLET)
     val mode: StateFlow<NfcMode> = _mode.asStateFlow()
 
+    private var pendingSignRequest: NdefMessage? = null
+
     fun startSession(mode: NfcMode, signRequestMessage: NdefMessage? = null) {
-        currentMode = mode
         _mode.value = mode
         pendingSignRequest = signRequestMessage
         _lastErrorDetail.value = null
-        _state.value = NfcState.WAITING_FOR_TAG
         _result.value = null
+        _state.value = NfcState.WAITING_FOR_TAG
+
+        when (mode) {
+            NfcMode.READ_WALLET -> {
+                SolvareHostApduService.startBridgeWalletRead(::handleBridgeEvent)
+            }
+            NfcMode.WRITE_SIGN_REQUEST -> {
+                val message = signRequestMessage
+                if (message == null) {
+                    emitError("No sign request data")
+                    return
+                }
+                SolvareHostApduService.startBridgeSignRequest(message, ::handleBridgeEvent)
+                _mode.value = NfcMode.READ_SIGN_RESPONSE
+            }
+            NfcMode.READ_SIGN_RESPONSE -> Unit
+        }
     }
 
     fun cancelSession() {
@@ -66,131 +79,57 @@ class NfcSessionManager {
         _result.value = null
         _lastErrorDetail.value = null
         pendingSignRequest = null
-        currentMode = NfcMode.READ_WALLET
         _mode.value = NfcMode.READ_WALLET
+        SolvareHostApduService.stopBridgeSession()
     }
 
     fun enableForegroundDispatch(activity: Activity) {
         val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            // Без PendingIntent → немає BAL при доставці від NFC-сервера; ActivityOptions при створенні PI заборонені.
-            adapter.enableReaderMode(
-                activity,
-                { tag ->
-                    // Не переключаемся на UI: IsoDep/Ndef I/O обязательно вне главного потока.
-                    val synthetic = Intent().apply {
-                        putExtra(NfcAdapter.EXTRA_TAG, tag)
-                    }
-                    handleIntent(synthetic)
-                },
-                READER_MODE_FLAGS,
-                null
-            )
-            return
+        val component = ComponentName(activity, SolvareHostApduService::class.java)
+        try {
+            CardEmulation.getInstance(adapter).setPreferredService(activity, component)
+        } catch (e: Exception) {
+            Log.w(TAG, "HCE preferred service setup failed", e)
         }
-        val intent = Intent(activity, activity.javaClass).apply {
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        val flags = buildPendingIntentFlagsForNfcForegroundDispatch()
-        @Suppress("DEPRECATION")
-        val pendingIntent = android.app.PendingIntent.getActivity(
-            activity,
-            NFC_DISPATCH_REQUEST_CODE,
-            intent,
-            flags
-        )
-        adapter.enableForegroundDispatch(activity, pendingIntent, null, null)
     }
 
     fun disableForegroundDispatch(activity: Activity) {
         val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            adapter.disableReaderMode(activity)
-        } else {
-            adapter.disableForegroundDispatch(activity)
+        try {
+            CardEmulation.getInstance(adapter).unsetPreferredService(activity)
+        } catch (e: Exception) {
+            Log.w(TAG, "HCE preferred service cleanup failed", e)
         }
     }
 
     fun handleIntent(intent: Intent) {
-        if (_state.value != NfcState.WAITING_FOR_TAG) return
-
-        val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG) ?: run {
-            emitError("NFC-тег не знайдено")
-            return
-        }
-
-        when (currentMode) {
-            NfcMode.READ_WALLET -> readWallet(intent, tag)
-            NfcMode.WRITE_SIGN_REQUEST -> writeSignRequest(tag)
-            NfcMode.READ_SIGN_RESPONSE -> readSignResponse(intent, tag)
-        }
+        Log.d(TAG, "Ignoring reader-mode NFC intent action=${intent.action}; SolWear uses HCE bridge")
     }
 
-    private fun readWallet(intent: Intent, tag: Tag) {
-        _state.value = NfcState.READING
-        try {
-            val ndefMessage = extractNdefMessage(intent, tag) ?: run {
-                emitError("NDEF-повідомлення не знайдено")
-                return
-            }
-            val payload = NdefProtocol.parseWalletMessage(ndefMessage)
-            if (payload != null) {
-                _result.value = NfcResult.WalletRead(payload)
+    fun resetState() {
+        _state.value = NfcState.IDLE
+        _result.value = null
+        _lastErrorDetail.value = null
+        pendingSignRequest = null
+        _mode.value = NfcMode.READ_WALLET
+        SolvareHostApduService.stopBridgeSession()
+    }
+
+    private fun handleBridgeEvent(event: BridgeEvent) {
+        when (event) {
+            is BridgeEvent.WalletRead -> {
+                _result.value = NfcResult.WalletRead(
+                    WalletPayload(pubkey = event.pubkey, network = event.network)
+                )
                 _state.value = NfcState.SUCCESS
-            } else {
-                emitError("Не вдалося прочитати дані гаманця")
             }
-        } catch (e: Exception) {
-            emitError("Помилка читання NFC: ${describeThrowable(e)}", e)
-        }
-    }
-
-    private fun writeSignRequest(tag: Tag) {
-        _state.value = NfcState.WRITING
-        val message = pendingSignRequest ?: run {
-            emitError("Немає даних для підпису")
-            return
-        }
-        try {
-            val ndef = Ndef.get(tag)
-            if (ndef == null) {
-                emitError("Тег не підтримує NDEF (потрібен Solvare Watch)")
-                return
-            }
-            ndef.connect()
-            try {
-                ndef.writeNdefMessage(message)
-            } finally {
-                try {
-                    ndef.close()
-                } catch (_: Exception) {
-                }
-            }
-            _state.value = NfcState.SUCCESS
-            currentMode = NfcMode.READ_SIGN_RESPONSE
-            _mode.value = NfcMode.READ_SIGN_RESPONSE
-            _state.value = NfcState.WAITING_FOR_TAG
-        } catch (e: Exception) {
-            emitError("Помилка запису NFC: ${describeThrowable(e)}", e)
-        }
-    }
-
-    private fun readSignResponse(intent: Intent, tag: Tag) {
-        _state.value = NfcState.READING
-        try {
-            val ndefMessage = extractNdefMessage(intent, tag) ?: run {
-                emitError("Відповідь підпису не отримано (немає NDEF в intent і на тегу)")
-                return
-            }
-            val response = NdefProtocol.parseSignResponse(ndefMessage)
-            if (response != null) {
-                _result.value = NfcResult.SignatureRead(response)
+            is BridgeEvent.SignatureRead -> {
+                _result.value = NfcResult.SignatureRead(
+                    SignResponse(signature = event.signature)
+                )
                 _state.value = NfcState.SUCCESS
-            } else {
-                emitError("Не вдалося прочитати підпис")
             }
-        } catch (e: Exception) {
-            emitError("Помилка читання підпису: ${describeThrowable(e)}", e)
+            is BridgeEvent.Failure -> emitError(event.message)
         }
     }
 
@@ -205,97 +144,8 @@ class NfcSessionManager {
         _state.value = NfcState.ERROR
     }
 
-    /** IOException и др. часто дают message == null — показываем класс и подсказку. */
-    private fun describeThrowable(e: Throwable): String {
-        val detail = e.message?.takeIf { it.isNotBlank() }
-            ?: e.cause?.message?.takeIf { it.isNotBlank() }
-        val base = buildString {
-            append(e.javaClass.simpleName)
-            if (detail != null) append(": ").append(detail)
-        }
-        return if (detail == null) {
-            "$base (часто обрив зв'язку — піднесіть годинник ще раз; див. підказку про NFC та оплату)"
-        } else {
-            base
-        }
-    }
-
-    /**
-     * API 33+ требует типизированный getParcelableArrayExtra; иначе EXTRA_NDEF_MESSAGES часто null.
-     * Для HCE Type 4: спочатку [Ndef], якщо немає даних — [IsoDep] (той самий формат файлу, що в SolvareHostApduService).
-     */
-    private fun extractNdefMessage(intent: Intent, tag: Tag): NdefMessage? {
-        val fromIntent = readNdefMessagesFromIntent(intent).firstOrNull()
-        if (fromIntent != null) return fromIntent
-
-        val ndefTech = Ndef.get(tag)
-        if (ndefTech != null) {
-            try {
-                ndefTech.connect()
-                try {
-                    val msg = ndefTech.cachedNdefMessage ?: ndefTech.ndefMessage
-                    if (msg != null) return msg
-                } finally {
-                    try {
-                        ndefTech.close()
-                    } catch (_: Exception) {
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Ndef: читання не вдалося, пробуємо IsoDep", e)
-            }
-        } else {
-            Log.d(TAG, "Ndef.get(tag)==null; techs=${tag.techList.joinToString()} IsoDep=${IsoDep.get(tag) != null}")
-        }
-
-        return Type4IsoDepNdefReader.readNdefMessage(tag)
-    }
-
-    private fun readNdefMessagesFromIntent(intent: Intent): List<NdefMessage> {
-        if (Build.VERSION.SDK_INT >= 33) {
-            val typed = intent.getParcelableArrayExtra(
-                NfcAdapter.EXTRA_NDEF_MESSAGES,
-                NdefMessage::class.java
-            )?.filterIsInstance<NdefMessage>().orEmpty()
-            if (typed.isNotEmpty()) return typed
-        }
-        @Suppress("DEPRECATION")
-        return intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
-            ?.mapNotNull { it as? NdefMessage }.orEmpty()
-    }
-
-    fun resetState() {
-        _state.value = NfcState.IDLE
-        _result.value = null
-        _lastErrorDetail.value = null
-        currentMode = NfcMode.READ_WALLET
-        _mode.value = NfcMode.READ_WALLET
-    }
-
     companion object {
         private const val TAG = "SolvareNfc"
-
-        /** Смена requestCode сбрасывает закэшированный PI без BAL-opt-in после обновления приложения. */
-        private const val NFC_DISPATCH_REQUEST_CODE = 0x4e46_4352 // "NFCQ" + 1
-
-        private val READER_MODE_FLAGS =
-            NfcAdapter.FLAG_READER_NFC_A or
-                NfcAdapter.FLAG_READER_NFC_B or
-                NfcAdapter.FLAG_READER_NFC_F or
-                NfcAdapter.FLAG_READER_NFC_V or
-                NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK
-
-        private fun buildPendingIntentFlagsForNfcForegroundDispatch(): Int {
-            var f = android.app.PendingIntent.FLAG_UPDATE_CURRENT
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                f = f or android.app.PendingIntent.FLAG_MUTABLE
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                // PendingIntent.FLAG_ALLOW_BACKGROUND_ACTIVITY_STARTS (API 34); literal — сумісність зі stubs
-                f = f or 0x01000000
-            }
-            return f
-        }
 
         fun isNfcAvailable(activity: Activity): Boolean {
             return NfcAdapter.getDefaultAdapter(activity) != null
