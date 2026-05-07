@@ -1,6 +1,6 @@
 "use client";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import RedDot from "./ui/RedDot";
 
@@ -8,6 +8,16 @@ export default function Hero() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], [0, 80]);
+
+  const words = ["CRYPTO WALLETS", "DIGITAL ASSETS", "OWNERSHIP", "SELF-CUSTODY"];
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % words.length);
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [words.length]);
 
   return (
     <section
@@ -40,7 +50,7 @@ export default function Hero() {
           </motion.div>
 
           <motion.h1
-            className="hero-text text-white mb-6"
+            className="hero-text text-white mb-6 flex flex-col uppercase"
             initial="hidden"
             animate="visible"
             variants={{
@@ -48,27 +58,29 @@ export default function Hero() {
               visible: { transition: { staggerChildren: 0.12, delayChildren: 0.2 } },
             }}
           >
-            {["REIMAGINING", "CRYPTO"].map((word, i) => (
-              <motion.span
-                key={i}
-                className="inline-block mr-4"
-                variants={{
-                  hidden: { opacity: 0, y: 40, filter: "blur(8px)" },
-                  visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.7, ease: [0.2, 0.8, 0.2, 1] } },
-                }}
-              >
-                {word}
-              </motion.span>
-            ))}
             <motion.span
-              className="block text-white/30"
+              className="inline-block"
               variants={{
                 hidden: { opacity: 0, y: 40, filter: "blur(8px)" },
                 visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.7, ease: [0.2, 0.8, 0.2, 1] } },
               }}
             >
-              WALLETS.
+              REIMAGINING
             </motion.span>
+            <span className="relative block h-[1.2em] overflow-visible text-white/30 truncate">
+              <AnimatePresence mode="popLayout">
+                <motion.span
+                  key={index}
+                  className="absolute left-0"
+                  initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: -30, filter: "blur(8px)" }}
+                  transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+                >
+                  {words[index]}.
+                </motion.span>
+              </AnimatePresence>
+            </span>
           </motion.h1>
 
           <motion.p

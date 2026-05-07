@@ -9,7 +9,11 @@ export default function Footer() {
           <span className="text-sm font-semibold tracking-[0.15em] lowercase">solwear</span>
         </div>
 
-        <p className="label-caps text-center">Portable. Light. Always with you.</p>
+        <div className="flex items-center gap-6">
+          <a href="https://x.com/SolWear_" target="_blank" rel="noreferrer" className="label-caps hover:text-white transition-colors">Twitter (X)</a>
+          <a href="https://instagram.com/so1wear" target="_blank" rel="noreferrer" className="label-caps hover:text-white transition-colors">Instagram</a>
+          <a href="https://tiktok.com/@solwear" target="_blank" rel="noreferrer" className="label-caps hover:text-white transition-colors">TikTok</a>
+        </div>
 
         <p className="label-caps">© 2026 SolWear</p>
       </div>
