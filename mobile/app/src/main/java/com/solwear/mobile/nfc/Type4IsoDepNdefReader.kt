@@ -43,7 +43,7 @@ internal object Type4IsoDepNdefReader {
             }
             val raw = readNdefFileRaw(iso) ?: return null
             if (raw.size < 2) return null
-            val ndefLen = (raw[0].toInt() and 0xFF shl 8) or (raw[1].toInt() and 0xFF)
+            val ndefLen = ((raw[0].toInt() and 0xFF) shl 8) or (raw[1].toInt() and 0xFF)
             if (ndefLen <= 0 || raw.size < 2 + ndefLen) {
                 Log.w(TAG, "IsoDep: некоректна довжина NDEF len=$ndefLen raw=${raw.size}")
                 return null
@@ -136,7 +136,7 @@ internal object Type4IsoDepNdefReader {
             offset += data.size
             val buf = out.toByteArray()
             if (buf.size >= 2) {
-                val ndefContentLen = (buf[0].toInt() and 0xFF shl 8) or (buf[1].toInt() and 0xFF)
+                val ndefContentLen = ((buf[0].toInt() and 0xFF) shl 8) or (buf[1].toInt() and 0xFF)
                 targetSize = 2 + ndefContentLen
                 if (buf.size >= targetSize) return buf
             }

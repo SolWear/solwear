@@ -79,7 +79,7 @@ class SolWearHostApduService : HostApduService() {
         }
 
         if (p1 == 0x00 && p2 == 0x0C && data.size == 2) {
-            val fileId = (data[0].toInt() and 0xFF shl 8) or (data[1].toInt() and 0xFF)
+            val fileId = ((data[0].toInt() and 0xFF) shl 8) or (data[1].toInt() and 0xFF)
             return when (fileId) {
                 FILE_CC -> {
                     selectedFileId = FILE_CC
@@ -148,7 +148,7 @@ class SolWearHostApduService : HostApduService() {
 
     private fun tryProcessSignRequest() {
         if (ndefFile.size < 2) return
-        val ndefLen = (ndefFile[0].toInt() and 0xFF shl 8) or (ndefFile[1].toInt() and 0xFF)
+        val ndefLen = ((ndefFile[0].toInt() and 0xFF) shl 8) or (ndefFile[1].toInt() and 0xFF)
         if (ndefFile.size < 2 + ndefLen || ndefLen == 0) return
 
         val ndefBytes = ndefFile.copyOfRange(2, 2 + ndefLen)

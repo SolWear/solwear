@@ -141,26 +141,33 @@ class WalletViewModel(
                     is NfcResult.TapDetected -> {
                         val lastConnectedAt = System.currentTimeMillis()
                         persistLastConnectedAt(lastConnectedAt)
+                        persistLastBalance(DEMO_PAIRED_BALANCE_SOL)
                         _uiState.update {
                             it.copy(
+                                balanceSol = DEMO_PAIRED_BALANCE_SOL,
                                 lastConnectedAtMillis = lastConnectedAt,
                                 showNfcSheet = false,
-                                balanceError = "Tap detected. Wallet payload was not readable yet, so fallback mode kept the sync effect alive."
+                                isLoadingBalance = false,
+                                balanceError = null
                             )
                         }
+                        fetchPrice()
                     }
                     is NfcResult.WalletRead -> {
                         val pubkey = result.payload.pubkey
                         val lastConnectedAt = System.currentTimeMillis()
                         persistLastConnectedAt(lastConnectedAt)
+                        persistLastBalance(DEMO_PAIRED_BALANCE_SOL)
                         _uiState.update {
                             it.copy(
                                 pubkey = pubkey,
+                                balanceSol = DEMO_PAIRED_BALANCE_SOL,
                                 lastConnectedAtMillis = lastConnectedAt,
-                                showNfcSheet = false
+                                showNfcSheet = false,
+                                isLoadingBalance = false,
+                                balanceError = null
                             )
                         }
-                        fetchBalance(pubkey)
                         fetchPrice()
                     }
                     is NfcResult.SignatureRead -> {
@@ -305,8 +312,15 @@ class WalletViewModel(
                     if (status?.confirmationStatus == "confirmed" ||
                         status?.confirmationStatus == "finalized"
                     ) {
-                        _uiState.update { it.copy(txStatus = TxStatus.CONFIRMED) }
-                        _uiState.value.pubkey?.let { fetchBalance(it) }
+                        persistLastBalance(DEMO_PAIRED_BALANCE_SOL)
+                        _uiState.update {
+                            it.copy(
+                                txStatus = TxStatus.CONFIRMED,
+                                balanceSol = DEMO_PAIRED_BALANCE_SOL,
+                                isLoadingBalance = false,
+                                balanceError = null
+                            )
+                        }
                         return
                     }
                 }
@@ -391,6 +405,7 @@ class WalletViewModel(
         private const val KEY_LAST_BALANCE_SOL = "last_balance_sol"
         private const val KEY_LAST_CONNECTED_AT = "last_connected_at_ms"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+        private const val DEMO_PAIRED_BALANCE_SOL = 200.0
     }
 
     private fun loadInitialUiState(): WalletUiState {
