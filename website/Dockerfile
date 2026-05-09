@@ -2,13 +2,15 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache python3 make g++ libc6-compat
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 FROM node:20-alpine AS builder
 WORKDIR /app
+ENV NEXT_PUBLIC_SOLWEAR_DYNAMIC=1
+ENV SOLWEAR_STATIC_EXPORT=0
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN npm run build:server
 
 FROM node:20-alpine AS runner
 WORKDIR /app

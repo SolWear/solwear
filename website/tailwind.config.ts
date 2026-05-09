@@ -10,7 +10,8 @@ const config: Config = {
     extend: {
       colors: {
         solwear: {
-          bg: "#0d0d0d",
+          bg: "#050505",
+          panel: "#111111",
           red: "#e0000f",
           muted: "#666666",
         },
@@ -30,7 +31,7 @@ const config: Config = {
       },
       animation: {
         "pulse-red": "pulse-red 2s ease-in-out infinite",
-        "fade-up": "fade-up 0.6s ease-out both",
+        "fade-up": "fade-up 0.4s ease-out both",
       },
     },
   },

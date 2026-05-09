@@ -14,7 +14,7 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.solwear.mobile.ui.screens.HistoryScreen
+import com.solwear.mobile.ui.screens.WalletScreen
 import com.solwear.mobile.ui.screens.HomeScreen
 import com.solwear.mobile.ui.screens.OnboardingScreen
 import com.solwear.mobile.ui.screens.SendScreen
@@ -95,8 +95,8 @@ fun SolWearNavGraph(viewModel: WalletViewModel) {
                 onTab = { route -> navigateTab(navController, route) },
             )
         }
-        composable("history") {
-            HistoryScreen(
+        composable("wallet") {
+            WalletScreen(
                 viewModel = viewModel,
                 onTab = { route -> navigateTab(navController, route) },
             )

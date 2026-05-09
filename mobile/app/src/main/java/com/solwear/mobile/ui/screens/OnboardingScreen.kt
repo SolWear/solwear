@@ -76,7 +76,7 @@ fun OnboardingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Вітання в SolWear") },
+                title = { Text("Welcome to SolWear") },
                 actions = {
                     TextButton(
                         onClick = {
@@ -85,7 +85,7 @@ fun OnboardingScreen(
                             onFinish()
                         }
                     ) {
-                        Text("Пропустити")
+                        Text("Skip")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -127,7 +127,7 @@ fun OnboardingScreen(
                         onClick = { page-- },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Назад")
+                        Text("Back")
                     }
                 }
 
@@ -147,7 +147,7 @@ fun OnboardingScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text(if (page < 2) "Далі" else "Готово")
+                    Text(if (page < 2) "Next" else "Done")
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -175,14 +175,14 @@ private fun OnboardingIntroPage() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Це застосунок для годинників SolWear",
+            text = "Your SolWear watch wallet app",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "Тут ви можете підключити SolWear Watch, переглядати баланс SOL і підписувати транзакції через NFC.",
+            text = "Connect SolWear Watch, view SOL balance, and sign transactions over NFC.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -194,25 +194,25 @@ private fun OnboardingIntroPage() {
 private fun OnboardingStepsPage() {
     Column(horizontalAlignment = Alignment.Start) {
         Text(
-            text = "Як підключити годинник:",
+            text = "How to connect:",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "1. Увімкніть SolWear Watch і відкрийте екран підключення NFC.",
+            text = "1. Wake SolWear Watch and keep NFC armed.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "2. Увімкніть NFC на телефоні та годиннику.",
+            text = "2. Turn on NFC on the phone.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "3. Піднесіть годинник до телефона та дочекайтесь зчитування.",
+            text = "3. Hold the watch near the phone until the sync effect appears.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -233,7 +233,7 @@ private fun OnboardingConnectPage(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = if (isConnected) "Годинник підключено" else "Спробуйте підключити SolWear Watch зараз",
+            text = if (isConnected) "Watch connected" else "Connect SolWear Watch now",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
@@ -241,9 +241,9 @@ private fun OnboardingConnectPage(
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = if (isConnected) {
-                "Підключення успішне. Можна переходити до головного меню."
+                "Connection worked. You can continue."
             } else {
-                "Натисніть кнопку нижче та піднесіть годинник до телефона."
+                "Tap the button below, then hold the watch near the phone."
             },
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -251,7 +251,7 @@ private fun OnboardingConnectPage(
         )
         Spacer(modifier = Modifier.height(18.dp))
         Button(onClick = onConnectClick) {
-            Text(if (isConnected) "Підключити повторно" else "Підключити годинник")
+            Text(if (isConnected) "Connect again" else "Connect watch")
         }
     }
 }

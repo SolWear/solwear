@@ -12,14 +12,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = SolanaGreen,
-    secondary = SolanaPurple,
+    primary = Color(0xFFFFFFFF),
+    secondary = SolanaGreen,
     tertiary = SolWearRed,
     background = SolWearBg,
     surface = SolWearSurface,
     surfaceVariant = SolWearCard,
     outline = SolWearBorder,
-    onPrimary = SolWearBg,
+    onPrimary = Color(0xFF000000),
     onSecondary = SolWearBg,
     onTertiary = TextPrimary,
     onBackground = TextPrimary,
@@ -29,12 +29,12 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = SolanaPurple,
+    primary = Color(0xFF000000),
     secondary = SolanaGreen,
-    tertiary = Pink40,
-    background = Color(0xFFF6F8FA),
+    tertiary = SolWearRed,
+    background = Color(0xFFFFFFFF),
     surface = Color(0xFFFFFFFF),
-    surfaceVariant = Color(0xFFE8EAED),
+    surfaceVariant = Color(0xFFF2F2F2),
     onPrimary = Color(0xFFFFFFFF),
     onSecondary = Color(0xFF000000),
     onBackground = Color(0xFF1C1B1F),

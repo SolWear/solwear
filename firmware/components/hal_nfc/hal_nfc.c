@@ -10,11 +10,19 @@ static bool s_ready = false;
 
 nfc_tx_payload_t  g_nfc_tx         = {};
 nfc_key_import_t  g_nfc_key_import = {};
+nfc_sync_status_t g_nfc_sync       = {.event = NFC_SYNC_IDLE};
+
+static uint8_t s_target_ndef_file[1024] = {};
+static size_t  s_target_ndef_file_len   = 2;
+static bool    s_target_response_pending = false;
 
 #define I2C_PORT   I2C_NUM_0
 #define PIN_SDA    5
 #define PIN_SCL    6
 #define PN532_ADDR 0x24
+
+static bool parse_ndef(const uint8_t *data, size_t len);
+static size_t b64_encode(const uint8_t *in, size_t in_len, char *out, size_t out_max);
 
 // ── Base64 ───────────────────────────────────────────────────────────────
 static const char kB64[] =
@@ -91,11 +99,14 @@ static bool pn532_cmd(const uint8_t *cmd, size_t cmd_len,
     }
 
     uint8_t raw[300] = {};
-    for (int attempt = 0; attempt < 3; attempt++) {
-        vTaskDelay(pdMS_TO_TICKS(18 + attempt * 12));
+    int attempts = timeout_ms <= 120 ? 3 : (int)(timeout_ms / 25);
+    if (attempts < 3) attempts = 3;
+    if (attempts > 80) attempts = 80;
+    for (int attempt = 0; attempt < attempts; attempt++) {
+        vTaskDelay(pdMS_TO_TICKS(18 + (attempt < 4 ? attempt * 12 : 30)));
         memset(raw, 0, sizeof(raw));
         if (i2c_master_read_from_device(I2C_PORT, PN532_ADDR, raw, sizeof(raw),
-                                        pdMS_TO_TICKS(timeout_ms)) != ESP_OK) {
+                                        pdMS_TO_TICKS(timeout_ms < 80 ? timeout_ms : 80)) != ESP_OK) {
             continue;
         }
 
@@ -123,6 +134,18 @@ static bool pn532_cmd(const uint8_t *cmd, size_t cmd_len,
         return true;
     }
     return false;
+}
+
+static void sync_event(nfc_sync_event_t event, const char *message)
+{
+    g_nfc_sync.event = event;
+    g_nfc_sync.counter++;
+    g_nfc_sync.target_active = (event == NFC_SYNC_PHONE_NEAR);
+    if (message) {
+        snprintf(g_nfc_sync.message, sizeof(g_nfc_sync.message), "%s", message);
+    } else {
+        g_nfc_sync.message[0] = '\0';
+    }
 }
 
 static bool pn532_in_data_exchange(const uint8_t *apdu, size_t apdu_len,
@@ -285,6 +308,298 @@ static bool build_external_ndef(const char *type, const char *payload,
     return true;
 }
 
+static bool build_external_ndef_record(const char *type, const char *payload, uint8_t flags,
+                                       uint8_t *out, size_t out_max, size_t *out_len)
+{
+    size_t tlen = strlen(type);
+    size_t plen = strlen(payload);
+    size_t need = 3 + tlen + plen;
+    if (!out || tlen > 255 || plen > 255 || need > out_max) return false;
+
+    size_t idx = 0;
+    out[idx++] = (uint8_t)(flags | 0x10 | 0x04); // SR + TNF_EXTERNAL_TYPE
+    out[idx++] = (uint8_t)tlen;
+    out[idx++] = (uint8_t)plen;
+    memcpy(out + idx, type, tlen);
+    idx += tlen;
+    memcpy(out + idx, payload, plen);
+    idx += plen;
+    if (out_len) *out_len = idx;
+    return true;
+}
+
+static bool build_ndef_file(const uint8_t *ndef, size_t ndef_len, uint8_t *out, size_t out_max, size_t *out_len)
+{
+    if (!ndef || !out || ndef_len + 2 > out_max || ndef_len > 0xFFFF) return false;
+    out[0] = (uint8_t)(ndef_len >> 8);
+    out[1] = (uint8_t)ndef_len;
+    memcpy(out + 2, ndef, ndef_len);
+    if (out_len) *out_len = ndef_len + 2;
+    return true;
+}
+
+static bool build_wallet_ndef_file(const uint8_t pubkey[32], uint8_t *out, size_t out_max, size_t *out_len)
+{
+    char pub_b58[48] = {};
+    if (!base58_encode(pubkey, 32, pub_b58, sizeof(pub_b58))) return false;
+
+    char json[128];
+    int jlen = snprintf(json, sizeof(json),
+                        "{\"version\":1,\"pubkey\":\"%s\",\"network\":\"devnet\"}", pub_b58);
+    if (jlen <= 0 || jlen >= (int)sizeof(json)) return false;
+
+    uint8_t ndef[240] = {};
+    size_t ping_len = 0;
+    size_t wallet_len = 0;
+    if (!build_external_ndef_record("solwear:sync_ping", "{\"version\":1,\"source\":\"watch\"}", 0x80,
+                                    ndef, sizeof(ndef), &ping_len)) return false;
+    if (!build_external_ndef_record("solwear:wallet", json, 0x40,
+                                    ndef + ping_len, sizeof(ndef) - ping_len, &wallet_len)) return false;
+    size_t ndef_len = ping_len + wallet_len;
+    return build_ndef_file(ndef, ndef_len, out, out_max, out_len);
+}
+
+static bool build_sign_response_ndef_file(const uint8_t sig[64], uint8_t *out, size_t out_max, size_t *out_len)
+{
+    char sig_b64[96] = {};
+    b64_encode(sig, 64, sig_b64, sizeof(sig_b64));
+
+    char json[140];
+    int jlen = snprintf(json, sizeof(json),
+                        "{\"version\":1,\"signature\":\"%s\"}", sig_b64);
+    if (jlen <= 0 || jlen >= (int)sizeof(json)) return false;
+
+    uint8_t ndef[180] = {};
+    size_t ndef_len = 0;
+    if (!build_external_ndef("solwear:sign_response", json, ndef, sizeof(ndef), &ndef_len)) return false;
+    return build_ndef_file(ndef, ndef_len, out, out_max, out_len);
+}
+
+static bool pn532_tg_get_data(uint8_t *data, size_t data_max, size_t *data_len)
+{
+    const uint8_t cmd[] = {0x86};
+    uint8_t out[270] = {};
+    size_t out_len = 0;
+    if (!pn532_cmd(cmd, sizeof(cmd), 0x87, out, sizeof(out), &out_len, 220)) return false;
+    if (out_len < 1 || out[0] != 0x00) return false;
+    size_t n = out_len - 1;
+    if (data && data_max > 0) {
+        if (n > data_max) n = data_max;
+        memcpy(data, out + 1, n);
+    }
+    if (data_len) *data_len = n;
+    return true;
+}
+
+static bool pn532_tg_set_data(const uint8_t *data, size_t data_len)
+{
+    if (!data || data_len + 1 > 263) return false;
+    uint8_t cmd[264] = {};
+    uint8_t out[8] = {};
+    size_t out_len = 0;
+    cmd[0] = 0x8E;
+    memcpy(cmd + 1, data, data_len);
+    if (!pn532_cmd(cmd, data_len + 1, 0x8F, out, sizeof(out), &out_len, 220)) return false;
+    return out_len >= 1 && out[0] == 0x00;
+}
+
+static bool pn532_tg_init_as_target(uint16_t timeout_ms)
+{
+    const uint8_t cmd[] = {
+        0x8C,
+        0x05,              // PICC only, passive only
+        0x04, 0x00,        // SENS_RES
+        0xA5, 0xB6, 0xC7,  // NFCID1t (PN532 uses 3 bytes here)
+        0x20,              // SEL_RES: ISO/IEC 14443-4 compliant
+        0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,
+        0,0,               // FeliCa params padding
+        0,0,0,0,0,0,0,0,0,0, // NFCID3t
+        0x00,              // no general bytes
+        0x00               // no historical bytes
+    };
+    uint8_t out[32] = {};
+    size_t out_len = 0;
+    bool ok = pn532_cmd(cmd, sizeof(cmd), 0x8D, out, sizeof(out), &out_len, timeout_ms);
+    if (ok) ESP_LOGI(TAG, "PN532 target init ok");
+    return ok;
+}
+
+static size_t target_apdu_response(const uint8_t *apdu, size_t apdu_len, uint8_t *resp, size_t resp_max,
+                                   bool *request_written, bool *response_read)
+{
+    static const uint8_t cc_file[] = {
+        0x00, 0x0F,
+        0x20,
+        0x00, 0x3B,
+        0x00, 0x34,
+        0x04, 0x06,
+        0xE1, 0x04,
+        0x04, 0x00,
+        0x00,
+        0x00
+    };
+    static int selected_file = 0;
+    const uint8_t sw_ok[] = {0x90, 0x00};
+    const uint8_t sw_not_found[] = {0x6A, 0x82};
+    const uint8_t sw_wrong[] = {0x6B, 0x00};
+    const uint8_t sw_unsupported[] = {0x6A, 0x81};
+
+    if (!apdu || apdu_len < 4 || !resp || resp_max < 2) {
+        memcpy(resp, sw_wrong, 2);
+        return 2;
+    }
+
+    uint8_t ins = apdu[1];
+    uint8_t p1 = apdu[2];
+    uint8_t p2 = apdu[3];
+    uint8_t lc = apdu_len > 4 ? apdu[4] : 0;
+
+    if (ins == 0xA4) {
+        if (p1 == 0x04 && apdu_len >= 12 && lc == 0x07 &&
+            memcmp(apdu + 5, (uint8_t[]){0xD2,0x76,0x00,0x00,0x85,0x01,0x01}, 7) == 0) {
+            selected_file = 0;
+            memcpy(resp, sw_ok, 2);
+            return 2;
+        }
+        if (p1 == 0x00 && p2 == 0x0C && apdu_len >= 7 && lc == 0x02) {
+            uint16_t file_id = ((uint16_t)apdu[5] << 8) | apdu[6];
+            if (file_id == 0xE103) {
+                selected_file = 0xE103;
+                memcpy(resp, sw_ok, 2);
+                return 2;
+            }
+            if (file_id == 0xE104) {
+                selected_file = 0xE104;
+                memcpy(resp, sw_ok, 2);
+                return 2;
+            }
+        }
+        memcpy(resp, sw_not_found, 2);
+        return 2;
+    }
+
+    if (ins == 0xB0) {
+        uint16_t off = ((uint16_t)p1 << 8) | p2;
+        const uint8_t *file = NULL;
+        size_t file_len = 0;
+        if (selected_file == 0xE103) {
+            file = cc_file;
+            file_len = sizeof(cc_file);
+        } else if (selected_file == 0xE104) {
+            file = s_target_ndef_file;
+            file_len = s_target_ndef_file_len;
+        } else {
+            memcpy(resp, sw_not_found, 2);
+            return 2;
+        }
+        if (off >= file_len) {
+            memcpy(resp, sw_wrong, 2);
+            return 2;
+        }
+        uint8_t le = apdu_len > 4 ? apdu[apdu_len - 1] : 0;
+        size_t n = le == 0 ? 256 : le;
+        if (n > file_len - off) n = file_len - off;
+        if (n + 2 > resp_max) n = resp_max - 2;
+        memcpy(resp, file + off, n);
+        memcpy(resp + n, sw_ok, 2);
+        if (selected_file == 0xE104 && s_target_response_pending && off == 0 && response_read) {
+            *response_read = true;
+        }
+        return n + 2;
+    }
+
+    if (ins == 0xD6) {
+        if (selected_file != 0xE104 || apdu_len < 5) {
+            memcpy(resp, sw_not_found, 2);
+            return 2;
+        }
+        uint16_t off = ((uint16_t)p1 << 8) | p2;
+        size_t data_len = lc;
+        if (apdu_len < 5 + data_len || off + data_len > sizeof(s_target_ndef_file)) {
+            memcpy(resp, sw_wrong, 2);
+            return 2;
+        }
+        memcpy(s_target_ndef_file + off, apdu + 5, data_len);
+        if (off + data_len > s_target_ndef_file_len) s_target_ndef_file_len = off + data_len;
+
+        uint16_t ndef_len = ((uint16_t)s_target_ndef_file[0] << 8) | s_target_ndef_file[1];
+        if (ndef_len > 0 && 2 + ndef_len <= s_target_ndef_file_len) {
+            if (parse_ndef(s_target_ndef_file + 2, ndef_len) && request_written) {
+                *request_written = true;
+            }
+        }
+        memcpy(resp, sw_ok, 2);
+        return 2;
+    }
+
+    memcpy(resp, sw_unsupported, 2);
+    return 2;
+}
+
+bool hal_nfc_emulate_wallet_target(const uint8_t pubkey[32], uint16_t timeout_ms)
+{
+    if (!s_ready || !pubkey) return false;
+
+    if (!s_target_response_pending) {
+        if (!build_wallet_ndef_file(pubkey, s_target_ndef_file, sizeof(s_target_ndef_file), &s_target_ndef_file_len)) {
+            sync_event(NFC_SYNC_ERROR, "NFC wallet build failed");
+            return false;
+        }
+    }
+
+    if (!pn532_tg_init_as_target(timeout_ms)) {
+        g_nfc_sync.target_active = false;
+        return false;
+    }
+
+    sync_event(NFC_SYNC_PHONE_NEAR, "Phone touched");
+    ESP_LOGI(TAG, "Type 4 target session started");
+    bool request_written = false;
+    bool response_read = false;
+
+    for (int i = 0; i < 18; i++) {
+        uint8_t apdu[260] = {};
+        size_t apdu_len = 0;
+        if (!pn532_tg_get_data(apdu, sizeof(apdu), &apdu_len)) break;
+        if (apdu_len >= 2) ESP_LOGI(TAG, "APDU INS=0x%02X len=%u", apdu[1], (unsigned)apdu_len);
+
+        uint8_t resp[270] = {};
+        size_t resp_len = target_apdu_response(apdu, apdu_len, resp, sizeof(resp), &request_written, &response_read);
+        if (!pn532_tg_set_data(resp, resp_len)) break;
+
+        if (request_written) {
+            sync_event(NFC_SYNC_SIGN_REQUEST, "Sign request received");
+            break;
+        }
+    }
+
+    if (response_read && s_target_response_pending) {
+        s_target_response_pending = false;
+        s_target_ndef_file_len = 2;
+        memset(s_target_ndef_file, 0, sizeof(s_target_ndef_file));
+        sync_event(NFC_SYNC_SIGN_RESPONSE, "Signature sent");
+    } else if (!request_written && !response_read) {
+        sync_event(NFC_SYNC_WALLET_SHARED, "Wallet shared");
+    }
+    g_nfc_sync.target_active = false;
+    ESP_LOGI(TAG, "Type 4 target session ended request=%d response=%d", request_written, response_read);
+    return true;
+}
+
+bool hal_nfc_set_sign_response_target(const uint8_t sig[64], const char *nonce)
+{
+    (void)nonce;
+    if (!sig) return false;
+    if (!build_sign_response_ndef_file(sig, s_target_ndef_file, sizeof(s_target_ndef_file), &s_target_ndef_file_len)) {
+        sync_event(NFC_SYNC_ERROR, "NFC signature build failed");
+        return false;
+    }
+    s_target_response_pending = true;
+    sync_event(NFC_SYNC_SIGN_RESPONSE, "Signature ready");
+    return true;
+}
+
 static bool write_legacy_ntag_ndef(const uint8_t *ndef, size_t ndef_len)
 {
     if (!ndef || ndef_len == 0 || ndef_len > 250) return false;
@@ -365,6 +680,8 @@ void hal_nfc_init(void)
 bool hal_nfc_ensure_init(void)
 {
     if (s_ready) return true;
+
+    ESP_LOGI(TAG, "PN532 init on I2C SDA=%d SCL=%d 100kHz", PIN_SDA, PIN_SCL);
 
     i2c_config_t cfg = {
         .mode             = I2C_MODE_MASTER,
@@ -480,6 +797,16 @@ static bool parse_ndef(const uint8_t *data, size_t len)
             }
             g_nfc_tx.valid = true;
             ESP_LOGI(TAG, "sign_request: %u tx bytes", g_nfc_tx.tx_len);
+            found = true;
+
+        } else if (strstr(type_str, "sync_ping")) {
+            sync_event(NFC_SYNC_PHONE_NEAR, "Sync ping");
+            ESP_LOGI(TAG, "sync_ping received");
+            found = true;
+
+        } else if (strstr(type_str, "wallet")) {
+            sync_event(NFC_SYNC_WALLET_SHARED, "Phone wallet seen");
+            ESP_LOGI(TAG, "wallet record received");
             found = true;
 
         } else if (strstr(type_str, "key_import")) {

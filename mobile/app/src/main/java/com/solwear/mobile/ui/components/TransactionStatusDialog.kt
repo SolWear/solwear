@@ -70,12 +70,12 @@ fun TransactionStatusDialog(
         title = {
             Text(
                 text = when (txStatus) {
-                    TxStatus.BUILDING -> "Побудова транзакції..."
-                    TxStatus.AWAITING_SIGN -> "Очікування підпису..."
-                    TxStatus.SENDING -> "Надсилання..."
-                    TxStatus.CONFIRMING -> "Підтвердження..."
-                    TxStatus.CONFIRMED -> "Транзакцію підтверджено"
-                    TxStatus.ERROR -> "Помилка"
+                    TxStatus.BUILDING -> "Building transaction..."
+                    TxStatus.AWAITING_SIGN -> "Waiting for signature..."
+                    TxStatus.SENDING -> "Sending..."
+                    TxStatus.CONFIRMING -> "Confirming..."
+                    TxStatus.CONFIRMED -> "Transaction confirmed"
+                    TxStatus.ERROR -> "Error"
                     else -> ""
                 },
                 textAlign = TextAlign.Center
@@ -100,7 +100,7 @@ fun TransactionStatusDialog(
                     }
                     TxStatus.ERROR -> {
                         Text(
-                            text = errorMessage ?: "Невідома помилка",
+                            text = errorMessage ?: "Unknown error",
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center
                         )

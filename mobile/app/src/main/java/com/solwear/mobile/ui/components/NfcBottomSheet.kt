@@ -24,9 +24,7 @@ fun NfcBottomSheet(
     nfcState: NfcState,
     purpose: NfcPurpose,
     onDismiss: () -> Unit,
-    /** Для підпису: етап запису запиту або читання відповіді (другий дотик). */
     nfcMode: NfcMode? = null,
-    /** Текст з [com.solwear.mobile.nfc.NfcSessionManager]; дублюється в logcat SolWearNfc. */
     errorDetail: String? = null,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 ) {
@@ -50,12 +48,12 @@ fun NfcBottomSheet(
                     Text(
                         text = when (purpose) {
                             NfcPurpose.READ_WALLET ->
-                                "Піднесіть годинник SolWear до цього пристрою"
+                                "Hold SolWear near this phone"
                             NfcPurpose.SIGN_TRANSACTION -> when (nfcMode) {
                                 NfcMode.READ_SIGN_RESPONSE ->
-                                    "Піднесіть годинник вдруге — читаємо підпис"
+                                    "Tap again to read the signature"
                                 else ->
-                                    "Піднесіть годинник до цього пристрою для підпису"
+                                    "Hold SolWear near this phone to sign"
                             }
                         },
                         style = MaterialTheme.typography.headlineMedium,
@@ -65,9 +63,9 @@ fun NfcBottomSheet(
                     Text(
                         text = when (purpose) {
                             NfcPurpose.READ_WALLET ->
-                                "Переконайтеся, що NFC на годиннику увімкнено і він поруч"
+                                "Primary mode reads the watch. Fallback mode lets the watch read this phone for a guaranteed tap effect."
                             NfcPurpose.SIGN_TRANSACTION ->
-                                "Потрібні два дотики: спочатку запит підпису, потім — читання відповіді."
+                                "Signing needs two taps: write the request, confirm on SolWear, then read the response."
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -82,7 +80,7 @@ fun NfcBottomSheet(
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = if (nfcState == NfcState.READING) "Читання даних..." else "Запис даних...",
+                        text = if (nfcState == NfcState.READING) "Reading data..." else "Writing data...",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -91,13 +89,13 @@ fun NfcBottomSheet(
                 NfcState.SUCCESS -> {
                     Icon(
                         imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = "Успіх",
+                        contentDescription = "Success",
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = "Готово!",
+                        text = "Synced",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -106,20 +104,20 @@ fun NfcBottomSheet(
                 NfcState.ERROR -> {
                     Icon(
                         imageVector = Icons.Filled.ErrorOutline,
-                        contentDescription = "Помилка",
+                        contentDescription = "Error",
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = "Помилка NFC",
+                        text = "NFC error",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.error
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = errorDetail?.takeIf { it.isNotBlank() }
-                            ?: "Спробуйте ще раз",
+                            ?: "Try again",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
@@ -128,7 +126,7 @@ fun NfcBottomSheet(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedButton(onClick = onDismiss) {
-                        Text("Закрити")
+                        Text("Close")
                     }
                 }
             }

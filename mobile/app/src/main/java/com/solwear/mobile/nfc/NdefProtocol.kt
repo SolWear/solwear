@@ -9,6 +9,7 @@ import kotlinx.serialization.json.Json
 private const val DOMAIN = "solwear"
 private const val LEGACY_DOMAIN = "solvare"
 private const val TYPE_WALLET = "wallet"
+private const val TYPE_SYNC_PING = "sync_ping"
 private const val TYPE_SIGN_REQUEST = "sign_request"
 private const val TYPE_SIGN_RESPONSE = "sign_response"
 
@@ -19,6 +20,12 @@ data class WalletPayload(
     val version: Int = 1,
     val pubkey: String,
     val network: String = "devnet"
+)
+
+@Serializable
+data class SyncPing(
+    val version: Int = 1,
+    val source: String = "watch"
 )
 
 @Serializable
@@ -34,6 +41,18 @@ data class SignResponse(
 )
 
 object NdefProtocol {
+    fun parseSyncPing(message: NdefMessage): SyncPing? {
+        return message.records.firstNotNullOfOrNull { record ->
+            if (isExternalType(record, TYPE_SYNC_PING)) {
+                try {
+                    val raw = String(record.payload).trim()
+                    if (raw.isEmpty()) SyncPing() else json.decodeFromString<SyncPing>(raw)
+                } catch (_: Exception) {
+                    SyncPing()
+                }
+            } else null
+        }
+    }
 
     fun parseWalletMessage(message: NdefMessage): WalletPayload? {
         return message.records.firstNotNullOfOrNull { record ->

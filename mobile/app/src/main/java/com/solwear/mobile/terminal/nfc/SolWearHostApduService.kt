@@ -113,6 +113,11 @@ class SolWearHostApduService : HostApduService() {
         val chunk = file.copyOfRange(offset, end)
 
         Log.d(TAG, "READ BINARY offset=$offset le=$le -> ${chunk.size} bytes")
+        if (selectedFileId == FILE_NDEF && offset == 0) {
+            bridgeCallback?.invoke(BridgeEvent.TapDetected("phone_hce"))
+            lastEvent = "Fallback tap detected"
+            eventCallback?.invoke(lastEvent!!)
+        }
         return chunk + SW_OK
     }
 
@@ -230,8 +235,13 @@ class SolWearHostApduService : HostApduService() {
                 network = "devnet"
             )
         )
-        val record = android.nfc.NdefRecord.createExternal("solwear", "wallet", walletPayload.toByteArray())
-        val message = android.nfc.NdefMessage(arrayOf(record))
+        val pingRecord = android.nfc.NdefRecord.createExternal(
+            "solwear",
+            "sync_ping",
+            """{"version":1,"source":"phone_hce"}""".toByteArray()
+        )
+        val walletRecord = android.nfc.NdefRecord.createExternal("solwear", "wallet", walletPayload.toByteArray())
+        val message = android.nfc.NdefMessage(arrayOf(pingRecord, walletRecord))
         val messageBytes = message.toByteArray()
 
         val out = ByteArrayOutputStream()
@@ -331,6 +341,12 @@ class SolWearHostApduService : HostApduService() {
             activeInstance?.replaceNdefFile(pendingNdefFile!!)
         }
 
+        fun startBridgeSyncPing(callback: (BridgeEvent) -> Unit) {
+            bridgeCallback = callback
+            pendingNdefFile = null
+            activeInstance?.resetToWalletMode()
+        }
+
         fun startBridgeSignRequest(message: NdefMessage, callback: (BridgeEvent) -> Unit) {
             bridgeCallback = callback
             pendingNdefFile = buildNdefFile(message)
@@ -355,6 +371,7 @@ class SolWearHostApduService : HostApduService() {
 }
 
 sealed interface BridgeEvent {
+    data class TapDetected(val source: String) : BridgeEvent
     data class WalletRead(val pubkey: String, val network: String) : BridgeEvent
     data class SignatureRead(val signature: String) : BridgeEvent
     data class Failure(val message: String) : BridgeEvent

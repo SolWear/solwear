@@ -22,7 +22,7 @@ data class BottomTab(
 
 val SolWearTabs = listOf(
     BottomTab("home", "Home", Icons.Filled.Home),
-    BottomTab("history", "History", Icons.Filled.History),
+    BottomTab("wallet", "Wallet", Icons.Filled.History),
     BottomTab("send", "Send", Icons.Filled.Send),
     BottomTab("settings", "Settings", Icons.Filled.Settings),
 )

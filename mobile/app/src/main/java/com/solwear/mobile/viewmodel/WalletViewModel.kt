@@ -138,6 +138,17 @@ class WalletViewModel(
         viewModelScope.launch {
             nfcManager.result.filterNotNull().collect { result ->
                 when (result) {
+                    is NfcResult.TapDetected -> {
+                        val lastConnectedAt = System.currentTimeMillis()
+                        persistLastConnectedAt(lastConnectedAt)
+                        _uiState.update {
+                            it.copy(
+                                lastConnectedAtMillis = lastConnectedAt,
+                                showNfcSheet = false,
+                                balanceError = "Tap detected. Wallet payload was not readable yet, so fallback mode kept the sync effect alive."
+                            )
+                        }
+                    }
                     is NfcResult.WalletRead -> {
                         val pubkey = result.payload.pubkey
                         val lastConnectedAt = System.currentTimeMillis()
@@ -193,7 +204,7 @@ class WalletViewModel(
                 .onFailure { e ->
                     _uiState.update {
                         it.copy(
-                            balanceError = e.message ?: "Помилка завантаження балансу",
+                            balanceError = e.message ?: "Could not load balance",
                             isLoadingBalance = false
                         )
                     }
@@ -233,7 +244,7 @@ class WalletViewModel(
                 _uiState.update {
                     it.copy(
                         txStatus = TxStatus.ERROR,
-                        sendError = "Помилка побудови транзакції: ${e.message}"
+                        sendError = "Could not build transaction: ${e.message}"
                     )
                 }
             }
@@ -245,7 +256,7 @@ class WalletViewModel(
             _uiState.update {
                 it.copy(
                     txStatus = TxStatus.ERROR,
-                    sendError = "Внутрішня помилка: немає даних транзакції"
+                    sendError = "Internal error: missing transaction data"
                 )
             }
             return
@@ -256,7 +267,7 @@ class WalletViewModel(
             _uiState.update {
                 it.copy(
                     txStatus = TxStatus.ERROR,
-                    sendError = "Некоректний підпис (очікувалося 64 байти)"
+                    sendError = "Invalid signature: expected 64 bytes"
                 )
             }
             return
@@ -280,7 +291,7 @@ class WalletViewModel(
                 _uiState.update {
                     it.copy(
                         txStatus = TxStatus.ERROR,
-                        sendError = "Помилка надсилання: ${e.message}"
+                        sendError = "Could not send transaction: ${e.message}"
                     )
                 }
             }
@@ -301,7 +312,7 @@ class WalletViewModel(
                 }
         }
         _uiState.update {
-            it.copy(txStatus = TxStatus.ERROR, sendError = "Таймаут підтвердження транзакції")
+            it.copy(txStatus = TxStatus.ERROR, sendError = "Transaction confirmation timed out")
         }
     }
 
@@ -358,18 +369,18 @@ class WalletViewModel(
     }
 
     private fun validateRecipient(address: String): String? {
-        if (address.isBlank()) return "Введіть адресу отримувача"
-        if (!Base58.isValidSolanaAddress(address)) return "Некоректна Solana-адреса"
-        if (address == _uiState.value.pubkey) return "Не можна надіслати собі"
+        if (address.isBlank()) return "Enter a recipient address"
+        if (!Base58.isValidSolanaAddress(address)) return "Invalid Solana address"
+        if (address == _uiState.value.pubkey) return "You cannot send to yourself"
         return null
     }
 
     private fun validateAmount(amount: String, balance: Double?): String? {
-        if (amount.isBlank()) return "Введіть суму"
-        val value = amount.toDoubleOrNull() ?: return "Некоректне число"
-        if (value <= 0) return "Сума має бути більшою за 0"
+        if (amount.isBlank()) return "Enter an amount"
+        val value = amount.toDoubleOrNull() ?: return "Invalid number"
+        if (value <= 0) return "Amount must be greater than 0"
         if (balance != null && value > balance - 0.000005) {
-            return "Недостатньо коштів (потрібен запас на комісію)"
+            return "Insufficient funds, including fee reserve"
         }
         return null
     }

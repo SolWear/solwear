@@ -50,12 +50,12 @@ fun SendScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Надіслати SOL") },
+                title = { Text("Send SOL") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Назад"
+                            contentDescription = "Back"
                         )
                     }
                 },
@@ -77,7 +77,7 @@ fun SendScreen(
 
             if (uiState.balanceSol != null) {
                 Text(
-                    text = "Доступно: ${String.format(Locale.US, "%.4f", uiState.balanceSol)} SOL",
+                    text = "Available: ${String.format(Locale.US, "%.4f", uiState.balanceSol)} SOL",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -87,8 +87,8 @@ fun SendScreen(
             OutlinedTextField(
                 value = uiState.sendRecipient,
                 onValueChange = { viewModel.onRecipientChanged(it) },
-                label = { Text("Адреса отримувача") },
-                placeholder = { Text("Base58 Solana адреса") },
+                label = { Text("Recipient address") },
+                placeholder = { Text("Base58 Solana address") },
                 isError = uiState.recipientError != null,
                 supportingText = uiState.recipientError?.let { error ->
                     { Text(error, color = MaterialTheme.colorScheme.error) }
@@ -106,7 +106,7 @@ fun SendScreen(
             OutlinedTextField(
                 value = uiState.sendAmount,
                 onValueChange = { viewModel.onAmountChanged(it) },
-                label = { Text("Сума (SOL)") },
+                label = { Text("Amount (SOL)") },
                 placeholder = { Text("0.0") },
                 isError = uiState.amountError != null,
                 supportingText = uiState.amountError?.let { error ->
@@ -145,7 +145,7 @@ fun SendScreen(
                 shape = MaterialTheme.shapes.large
             ) {
                 Text(
-                    text = "Підписати та надіслати",
+                    text = "Sign and send",
                     style = MaterialTheme.typography.titleMedium
                 )
             }

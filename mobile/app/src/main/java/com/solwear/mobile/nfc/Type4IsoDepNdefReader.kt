@@ -61,13 +61,60 @@ internal object Type4IsoDepNdefReader {
         }
     }
 
+    fun writeNdefMessage(tag: Tag, message: NdefMessage): Boolean {
+        val iso = IsoDep.get(tag) ?: return false
+        return try {
+            iso.connect()
+            iso.timeout = 10_000
+            if (!transceiveOk(iso, SELECT_NDEF_APP)) {
+                Log.w(TAG, "IsoDep: SELECT NDEF AID failed before write")
+                return false
+            }
+            if (!transceiveOk(iso, SELECT_NDEF_FILE)) {
+                Log.w(TAG, "IsoDep: SELECT NDEF file E104 failed before write")
+                return false
+            }
+
+            val ndefBytes = message.toByteArray()
+            if (ndefBytes.size > 1024) {
+                Log.w(TAG, "IsoDep: NDEF write too large (${ndefBytes.size})")
+                return false
+            }
+
+            if (!updateBinary(iso, 0, byteArrayOf(0x00, 0x00))) return false
+            var offset = 2
+            var sent = 0
+            while (sent < ndefBytes.size) {
+                val len = minOf(220, ndefBytes.size - sent)
+                if (!updateBinary(iso, offset, ndefBytes.copyOfRange(sent, sent + len))) {
+                    return false
+                }
+                sent += len
+                offset += len
+            }
+            val finalLen = byteArrayOf(
+                ((ndefBytes.size shr 8) and 0xFF).toByte(),
+                (ndefBytes.size and 0xFF).toByte()
+            )
+            updateBinary(iso, 0, finalLen)
+        } catch (e: Exception) {
+            Log.w(TAG, "IsoDep: writing NDEF", e)
+            false
+        } finally {
+            try {
+                iso.close()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     private fun readNdefFileRaw(iso: IsoDep): ByteArray? {
         val out = ByteArrayOutputStream()
         var offset = 0
         var targetSize = 2048
         repeat(24) {
             if (offset >= targetSize) return@repeat
-            val le = minOf(253, targetSize - offset)
+            val le = minOf(220, targetSize - offset)
             val p1 = (offset shr 8) and 0xFF
             val p2 = offset and 0xFF
             val cmd = byteArrayOf(
@@ -100,6 +147,23 @@ internal object Type4IsoDepNdefReader {
     private fun transceiveOk(iso: IsoDep, cmd: ByteArray): Boolean {
         val resp = iso.transceive(cmd)
         return isOkSw(resp)
+    }
+
+    private fun updateBinary(iso: IsoDep, offset: Int, data: ByteArray): Boolean {
+        if (data.size > 255) return false
+        val cmd = byteArrayOf(
+            0x00,
+            0xD6.toByte(),
+            ((offset shr 8) and 0xFF).toByte(),
+            (offset and 0xFF).toByte(),
+            data.size.toByte()
+        ) + data
+        val resp = iso.transceive(cmd)
+        if (!isOkSw(resp)) {
+            Log.w(TAG, "IsoDep: UPDATE BINARY offset=$offset sw=${resp.takeLast(2).toByteArray().toHex()}")
+            return false
+        }
+        return true
     }
 
     private fun isOkSw(resp: ByteArray): Boolean {

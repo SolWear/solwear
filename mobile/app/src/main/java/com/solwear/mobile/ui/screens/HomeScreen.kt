@@ -59,7 +59,7 @@ fun HomeScreen(
                 actions = {
                     TextButton(onClick = { viewModel.onRefreshClicked() }) {
                         Text(
-                            text = "Оновити",
+                            text = "Sync",
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -113,7 +113,7 @@ fun HomeScreen(
 
                 if (uiState.pubkey == null) {
                     Text(
-                        text = "Натисніть кнопку оновлення,\nщоб підключити годинник",
+                        text = "Tap Sync, then hold SolWear near the phone.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -147,7 +147,7 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Надіслати",
+                        text = "Send",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -169,8 +169,8 @@ fun HomeScreen(
 
 private fun formatLastConnection(timestampMillis: Long?): String {
     if (timestampMillis == null) {
-        return "Останнє підключення: -"
+        return "Last NFC sync: -"
     }
     val formatter = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
-    return "Останнє підключення: ${formatter.format(Date(timestampMillis))}"
+    return "Last NFC sync: ${formatter.format(Date(timestampMillis))}"
 }
