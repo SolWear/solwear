@@ -70,6 +70,36 @@ cd website
 docker-compose up --build
 ```
 
+## Solana Integration
+
+SolWear uses Solana as the core payment and signing layer for the wearable wallet.
+The watch stores wallet material on-device, prepares Solana-compatible signing
+responses, and signs transactions locally so the private key never leaves the
+wearable.
+
+For the hackathon prototype, the flow is built around Solana devnet. An external
+app prepares an unsigned Solana transaction for a payment, Blink, or wallet action.
+SolWear receives the signing request through the NFC-based interaction flow, the
+user confirms the action on the watch, and the firmware signs the transaction with
+the local Solana keypair. Only the resulting signature or signed payload is returned
+for submission to the network.
+
+This lets SolWear act as a physical Solana wallet for everyday use cases such as
+tap-based payments, Solana Pay-style checkout flows, Blinks, identity, loyalty, and
+event access. The phone or external app remains the interface for building and
+submitting transactions, while SolWear remains the wearable device that protects
+the key and authorizes signing.
+
+Core Solana features in this repository:
+
+- Solana wallet keypair generation/import flow
+- Local Ed25519 transaction signing on the watch
+- Devnet transaction demo path
+- NFC-based signing request and confirmation flow
+- Solana Pay / Blink-ready interaction model
+- External app submission of the signed payload
+- Private key isolation inside the wearable
+
 ## Hackathon Review Notes
 
 The repository is organized around the working prototype rather than a single
