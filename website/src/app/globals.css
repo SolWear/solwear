@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --sw-bg: #0d0d0d;
+  --sw-bg: #050505;
+  --sw-panel: #111111;
   --sw-red: #e0000f;
   --sw-border: rgba(255, 255, 255, 0.10);
   --sw-card: rgba(255, 255, 255, 0.05);
@@ -27,7 +28,7 @@ body {
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 16px;
+    border-radius: 8px;
   }
 
   .glass-nav {
@@ -38,17 +39,24 @@ body {
   }
 
   .hero-text {
-    font-size: clamp(2.2rem, 7vw, 6.5rem);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     line-height: 1.05;
   }
 
   .label-caps {
     font-size: 0.7rem;
-    letter-spacing: 0.2em;
+    letter-spacing: 0;
     text-transform: uppercase;
     color: #666;
+  }
+
+  .focus-ring {
+    outline: none;
+  }
+
+  .focus-ring:focus-visible {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
   }
 }
 
@@ -67,9 +75,11 @@ body {
   50%       { transform: translateY(8px); opacity: 1; }
 }
 
-.animate-pulse-red { animation: pulse-red 2s ease-in-out infinite; }
-.animate-float     { animation: float 6s ease-in-out infinite; }
-.animate-scroll    { animation: scroll-bounce 1.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: no-preference) {
+  .animate-pulse-red { animation: pulse-red 2s ease-in-out infinite; }
+  .animate-float     { animation: float 6s ease-in-out infinite; }
+  .animate-scroll    { animation: scroll-bounce 1.5s ease-in-out infinite; }
+}
 
 ::selection {
   background: rgba(224, 0, 15, 0.3);

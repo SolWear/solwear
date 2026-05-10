@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.solvare"
+    namespace = "com.solwear.mobile"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.solvare"
+        applicationId = "com.solwear.mobile"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

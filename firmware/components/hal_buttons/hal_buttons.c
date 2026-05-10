@@ -13,19 +13,18 @@
 #define DEBOUNCE_MS  20
 #define DOUBLE_MS    350
 #define TRIPLE_MS    600
+#define HOLD_MS      5000
 
 static btn_callback_t s_cb = NULL;
 
-// Per-button state
 typedef struct {
     bool     last_raw;
-    bool     pressed;        // debounced state
-    uint32_t press_time_ms;  // when it was pressed
+    bool     hold_sent;
+    uint32_t press_time_ms;
 } btn_state_t;
 
 static btn_state_t s_btn[4];  // 0=K1 1=K2 2=K3 3=K4
 
-// Multi-press counters for K1 and K4
 static uint8_t  s_k1_count = 0;
 static uint32_t s_k1_last_ms = 0;
 static uint8_t  s_k4_count = 0;
@@ -38,12 +37,19 @@ static uint32_t now_ms(void)
     return (uint32_t)(esp_timer_get_time() / 1000);
 }
 
+static void emit_event(btn_event_t ev)
+{
+    if (ev == BTN_NONE) return;
+    s_pending = ev;
+    if (s_cb) s_cb(ev);
+}
+
 static void process_press(int idx, uint32_t t)
 {
     btn_event_t ev = BTN_NONE;
 
     switch (idx) {
-        case 0:  // K1
+        case 0:
             if (t - s_k1_last_ms < DOUBLE_MS) {
                 s_k1_count++;
             } else {
@@ -57,13 +63,13 @@ static void process_press(int idx, uint32_t t)
                 ev = BTN_K1_PRESS;
             }
             break;
-        case 1:  // K2
+        case 1:
             ev = BTN_K2_PRESS;
             break;
-        case 2:  // K3
+        case 2:
             ev = BTN_K3_PRESS;
             break;
-        case 3:  // K4
+        case 3:
             if (t - s_k4_last_ms < TRIPLE_MS) {
                 s_k4_count++;
             } else {
@@ -75,36 +81,46 @@ static void process_press(int idx, uint32_t t)
                 s_k4_count = 0;
             } else if (s_k4_count >= 2) {
                 ev = BTN_K4_DOUBLE;
-                // Don't reset — allow triple on next press
             } else {
                 ev = BTN_K4_PRESS;
             }
             break;
     }
 
-    if (ev != BTN_NONE) {
-        s_pending = ev;
-        if (s_cb) s_cb(ev);
-    }
+    emit_event(ev);
 }
 
 static void btn_poll_task(void *arg)
 {
+    (void)arg;
     const int pins[4] = {PIN_K1, PIN_K2, PIN_K3, PIN_K4};
 
     while (1) {
         uint32_t t = now_ms();
         for (int i = 0; i < 4; i++) {
             bool raw = (gpio_get_level(pins[i]) == 0);
+
             if (raw && !s_btn[i].last_raw) {
-                // Falling edge (press)
                 s_btn[i].press_time_ms = t;
+                s_btn[i].hold_sent = false;
+            } else if (raw && s_btn[i].last_raw && !s_btn[i].hold_sent) {
+                if (t - s_btn[i].press_time_ms >= HOLD_MS) {
+                    if (i == 0) {
+                        s_btn[i].hold_sent = true;
+                        s_k1_count = 0;
+                        emit_event(BTN_K1_HOLD);
+                    } else if (i == 3) {
+                        s_btn[i].hold_sent = true;
+                        s_k4_count = 0;
+                        emit_event(BTN_K4_HOLD);
+                    }
+                }
             } else if (!raw && s_btn[i].last_raw) {
-                // Rising edge (release) — confirm press after debounce
-                if (t - s_btn[i].press_time_ms >= DEBOUNCE_MS) {
+                if (!s_btn[i].hold_sent && t - s_btn[i].press_time_ms >= DEBOUNCE_MS) {
                     process_press(i, t);
                 }
             }
+
             s_btn[i].last_raw = raw;
         }
         vTaskDelay(pdMS_TO_TICKS(DEBOUNCE_MS));

@@ -20,20 +20,28 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Solvare"
+        android:theme="@style/Theme.SolWear"
         tools:targetApi="31">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.Solvare">
+            android:theme="@style/Theme.SolWear">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- NDEF External Type (createExternal): система дає vnd.android.nfc://ext/solvare:… а не mime -->
+            <!-- Legacy Solvare external type is still accepted for old test builds. -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:scheme="vnd.android.nfc"
+                    android:host="ext"
+                    android:pathPrefix="/solwear:" />
+            </intent-filter>
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -46,12 +54,17 @@
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.solwear.wallet" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="application/vnd.solvare.wallet" />
             </intent-filter>
         </activity>
 
         <service
-            android:name=".terminal.nfc.SolvareHostApduService"
+            android:name=".terminal.nfc.SolWearHostApduService"
             android:exported="true"
             android:permission="android.permission.BIND_NFC_SERVICE">
             <intent-filter>

@@ -4,9 +4,10 @@ import Image from "next/image";
 
 const links = [
   { label: "WATCH", href: "#watch" },
+  { label: "NFC", href: "#nfc" },
+  { label: "OS", href: "#os" },
   { label: "APP", href: "#app" },
-  { label: "PURCHASE", href: "#purchase" },
-  { label: "EXPLORE", href: "#explore" },
+  { label: "PINBOARD", href: "/pinboard" },
 ];
 
 export default function Nav() {
@@ -30,13 +31,17 @@ export default function Nav() {
 
   const scrollTo = (href: string) => {
     setMenuOpen(false);
+    if (href.startsWith("/")) {
+      window.location.href = href;
+      return;
+    }
     const el = document.querySelector(href);
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 glass-nav transition-transform duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 glass-nav transition-transform duration-300 motion-reduce:transition-none ${
         visible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
@@ -44,10 +49,10 @@ export default function Nav() {
         {/* Logo */}
         <button
           onClick={() => scrollTo("#watch")}
-          className="flex items-center gap-2 text-white hover:text-white/80 transition-colors"
+          className="focus-ring flex min-h-10 items-center gap-2 text-white transition-colors hover:text-white/80"
         >
           <Image
-            src="/solwear/solwear-logo-white.webp"
+            src="/solwear-logo-white.webp"
             alt="SolWear"
             width={22}
             height={22}
@@ -62,7 +67,7 @@ export default function Nav() {
             <li key={l.label}>
               <button
                 onClick={() => scrollTo(l.href)}
-                className="label-caps text-white/60 hover:text-white transition-colors"
+                className="focus-ring min-h-10 px-1 label-caps text-white/60 transition-colors hover:text-white"
               >
                 {l.label}
               </button>
@@ -76,9 +81,9 @@ export default function Nav() {
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
         >
-          <span className={`block w-5 h-px bg-white transition-all duration-300 ${menuOpen ? "rotate-45 translate-y-[7px]" : ""}`} />
-          <span className={`block w-5 h-px bg-white transition-all duration-300 ${menuOpen ? "opacity-0" : ""}`} />
-          <span className={`block w-5 h-px bg-white transition-all duration-300 ${menuOpen ? "-rotate-45 -translate-y-[7px]" : ""}`} />
+          <span className={`block w-5 h-px bg-white transition-transform duration-150 motion-reduce:transition-none ${menuOpen ? "rotate-45 translate-y-[7px]" : ""}`} />
+          <span className={`block w-5 h-px bg-white transition-opacity duration-150 motion-reduce:transition-none ${menuOpen ? "opacity-0" : ""}`} />
+          <span className={`block w-5 h-px bg-white transition-transform duration-150 motion-reduce:transition-none ${menuOpen ? "-rotate-45 -translate-y-[7px]" : ""}`} />
         </button>
       </div>
 

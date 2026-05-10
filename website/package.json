@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:static",
+    "build:static": "node scripts/build-static.mjs",
+    "build:server": "node scripts/build-server.mjs",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "^15.1.0",
+    "next": "^15.5.18",
     "react": "^19",
     "react-dom": "^19",
     "framer-motion": "^11",
@@ -23,6 +25,6 @@
     "@types/better-sqlite3": "^7.6.11",
     "tailwindcss": "^3",
     "autoprefixer": "^10",
-    "postcss": "^8"
+    "postcss": "^8.5.14"
   }
 }

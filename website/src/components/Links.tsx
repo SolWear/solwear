@@ -17,8 +17,8 @@ const socials = [
   {
     title: "Instagram",
     desc: "Hardware photos. Behind-the-scenes.",
-    href: "https://instagram.com/so1wear",
-    tag: "@so1wear",
+    href: "https://instagram.com/solwear.watch",
+    tag: "@solwear.watch",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
         <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -60,7 +60,7 @@ export default function Links() {
           </AnimatedHeading>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {socials.map((s, i) => (
             <GlassCard key={s.title} className="p-6" href={s.href} delay={i * 0.08}>
               <div className="flex items-start justify-between mb-4">
@@ -76,6 +76,17 @@ export default function Links() {
               <p className="text-white/40 text-xs leading-relaxed">{s.desc}</p>
             </GlassCard>
           ))}
+          <GlassCard className="p-6" href="https://github.com/SolWear/solwear" delay={0.24}>
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-white/60">GH</span>
+              <span className="text-white/40 group-hover:text-white/80 transition-colors">
+                <Arrow />
+              </span>
+            </div>
+            <h3 className="text-white font-semibold mb-1">GitHub</h3>
+            <p className="label-caps mb-2">SolWear/solwear</p>
+            <p className="text-white/40 text-xs leading-relaxed">Firmware, mobile app, service tool, and site source.</p>
+          </GlassCard>
         </div>
       </div>
     </section>

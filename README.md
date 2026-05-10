@@ -47,6 +47,59 @@ cd mobile
 
 Use an NFC-capable Android phone for the watch pairing/signing demo.
 
+## Solana Integration
+
+SolWear is Solana-first. The Android companion app connects to Solana RPC,
+reads the wearable wallet public key, displays SOL balance and price context,
+builds a native System Program transfer, sends the unsigned transaction to the
+wearable for offline Ed25519 signing, then submits the signed transaction back
+to Solana and polls confirmation status.
+
+The private key stays on the SolWear device. The phone only handles public
+wallet data, unsigned transaction bytes, signed payloads, and RPC communication.
+This keeps the daily payment flow fast while preserving the cold-wallet security
+model.
+
+Relevant Solana implementation:
+
+- `mobile/app/src/main/java/com/solwear/mobile/data/solana/SolanaRepository.kt`
+  wraps Solana JSON-RPC calls for `getBalance`, `getLatestBlockhash`,
+  `sendTransaction`, and `getSignatureStatuses`
+- `mobile/app/src/main/java/com/solwear/mobile/viewmodel/WalletViewModel.kt`
+  validates Solana addresses, builds transfer transaction bytes, requests
+  hardware signing over NFC, injects the returned signature, broadcasts the
+  transaction, and waits for confirmation
+- `mobile/app/src/main/java/com/solwear/mobile/util/Base58.kt` validates and
+  decodes Solana public keys and blockhashes
+- `mobile/docs/SOLANA_TX_FLOW.md` documents the Solana transfer lifecycle
+
+## Solana Mobile Integration
+
+SolWear integrates with Solana Mobile through the Android companion app in
+`mobile/`. The phone acts as a thin Solana Mobile client: it prepares the
+transaction, requests signing from the air-gapped SolWear device over NFC, then
+receives only the signed payload and broadcasts it through Solana RPC. The
+private key remains on the wearable and never reaches the phone.
+
+The integration is designed around Mobile Wallet Adapter-style signing
+semantics: the mobile side creates a standardized signing request/response flow,
+while the hardware wallet performs the final offline approval and Ed25519
+signature. The app is implemented in Kotlin/Jetpack Compose for Android and is
+the Saga/Seeker-facing surface for pairing, wallet preview, NFC signing, and
+transaction submission.
+
+Relevant implementation and documentation:
+
+- `mobile/app/src/main/java/com/solwear/mobile/viewmodel/WalletViewModel.kt` -
+  prepares Solana sends, fetches blockhashes, submits signed transactions, and
+  checks confirmation status
+- `mobile/app/src/main/java/com/solwear/mobile/nfc/NfcSessionManager.kt` -
+  manages the phone-side NFC signing session
+- `mobile/app/src/main/java/com/solwear/mobile/nfc/NdefProtocol.kt` - defines
+  the wallet, sign request, and sign response payloads
+- `mobile/docs/NFC_PROTOCOL_NDEF.md` - documents the NFC signing protocol
+- `mobile/docs/SOLANA_TX_FLOW.md` - documents the Solana transaction lifecycle
+
 ## Run The Service Tool
 
 ```bash

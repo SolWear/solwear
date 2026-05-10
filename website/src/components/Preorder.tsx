@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+
+import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 import RedDot from "./ui/RedDot";
 import AnimatedHeading from "./ui/AnimatedHeading";
@@ -9,25 +10,27 @@ export default function Preorder() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const dynamicEnabled = process.env.NEXT_PUBLIC_SOLWEAR_DYNAMIC === "1";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
-    setPending(true);
 
+    if (!dynamicEnabled) {
+      setError("Live signup runs on the Docker site. For now, follow SolWear on X for launch updates.");
+      return;
+    }
+
+    setPending(true);
     try {
       const res = await fetch("/api/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
-      if (!res.ok) {
-        throw new Error("Failed to subscribe");
-      }
-
+      if (!res.ok) throw new Error("Failed to subscribe");
       setSubmitted(true);
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setPending(false);
@@ -35,70 +38,65 @@ export default function Preorder() {
   };
 
   return (
-    <section id="purchase" className="py-28 px-6">
-      <div className="max-w-3xl mx-auto text-center">
+    <section id="purchase" className="px-6 py-28">
+      <div className="mx-auto max-w-3xl text-center">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
         >
-          <div className="flex items-center justify-center gap-3 mb-6">
+          <div className="mb-6 flex items-center justify-center gap-3">
             <RedDot size={10} />
-            <p className="label-caps">pre-order</p>
+            <p className="label-caps">updates</p>
             <RedDot size={10} />
           </div>
 
-          <AnimatedHeading
-            as="h2"
-            className="text-4xl md:text-6xl font-bold tracking-tight mb-4"
-          >
-            Own the Future of Crypto
+          <AnimatedHeading as="h2" className="mb-4 text-4xl font-bold md:text-6xl">
+            Build log, launch notes, and prototype drops.
           </AnimatedHeading>
 
-          <p className="text-[5rem] font-bold text-white/10 leading-none mb-6 select-none">
-            $—
-          </p>
-
-          <p className="text-white/50 text-base mb-12 max-w-md mx-auto">
-            Pre-orders open after Frontier Hackathon results are announced.
-            Be the first to know.
+          <p className="mx-auto mb-12 max-w-md text-base text-white/50">
+            Join the SolWear update list or follow the public build on X.
           </p>
 
           {submitted ? (
             <motion.div
-              className="glass px-8 py-6 text-white/70 text-sm max-w-sm mx-auto"
+              className="glass mx-auto max-w-sm px-8 py-6 text-sm text-white/70"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
             >
               <RedDot size={8} className="mx-auto mb-3" />
-              You&apos;re on the list. We&apos;ll reach out as soon as results are in.
+              You are on the list.
             </motion.div>
           ) : (
-            <form
-              onSubmit={handleSubmit}
-              className="flex flex-col sm:flex-row gap-3 max-w-sm mx-auto"
-            >
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="flex-1 bg-white/5 border border-white/15 text-white placeholder-white/30 px-4 py-3 text-sm outline-none focus:border-white/40 transition-colors"
-              />
-              <button
-                type="submit"
-                disabled={pending}
-                className="px-6 py-3 bg-white text-black text-sm font-semibold tracking-wider hover:bg-white/90 transition-colors whitespace-nowrap disabled:opacity-60"
-              >
-                {pending ? "SUBMITTING…" : "NOTIFY ME"}
-              </button>
+            <form onSubmit={handleSubmit} className="mx-auto max-w-sm text-left">
+              <label htmlFor="notify-email" className="mb-2 block text-xs font-semibold text-white/70">
+                Email updates
+              </label>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <input
+                  id="notify-email"
+                  type="email"
+                  autoComplete="email"
+                  spellCheck={false}
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="min-h-11 flex-1 border border-white/15 bg-white/5 px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-white/40"
+                />
+                <button
+                  type="submit"
+                  disabled={pending}
+                  className="focus-ring min-h-11 bg-white px-6 py-3 text-sm font-semibold text-black transition-colors hover:bg-white/90 disabled:opacity-60"
+                >
+                  {pending ? "Submitting..." : "Notify me"}
+                </button>
+              </div>
             </form>
           )}
-          {error && (
-            <p className="mt-4 text-xs text-[#e0000f]">{error}</p>
-          )}
+          {error && <p className="mt-4 text-xs text-solwear-red">{error}</p>}
         </motion.div>
       </div>
     </section>
