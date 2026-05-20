@@ -42,10 +42,14 @@ This public repository is the prototype bundle. It brings the firmware, Android 
 | Area | Current state |
 | --- | --- |
 | Hardware | ESP32-S3 Mini prototype with ST7789 display, PN532 NFC, four buttons, LiPo power, and 3D-printed enclosure |
-| Firmware | Watchface, settings, wallet, transaction, stats, battery, storage, and NFC interaction surfaces |
-| Mobile | Android NFC reader/signing flow, wallet preview, Solana RPC balance and send path |
+| Firmware | SolWearOS Prototype V2 UI with reimagined Pebble-inspired monochrome visuals, detailed watchfaces, signing review, wallet, stats, battery, storage, and NFC interaction surfaces |
+| Mobile | Android NFC reader/signing flow tuned for Prototype V2 tag-mode pairing, wallet preview, Solana RPC balance, and send path |
 | Tooling | Desktop service utility for serial inspection, status dashboards, settings, and flashing |
 | Security model | Private key stays on the wearable; phone handles public data, unsigned requests, signed payloads, and network submission |
+
+## Latest Update
+
+See [UPDATE_LOG.md](UPDATE_LOG.md) for the Prototype V2 SolWearOS visual refactor, GM/GN watchfaces, NFC signing updates, and mobile companion changes.
 
 ## Prototype Gallery
 
