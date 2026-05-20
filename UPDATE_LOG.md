@@ -9,7 +9,9 @@ This update keeps SolWear focused on Prototype V2 hardware. Prototype V3 hardwar
 - Reimagined and refactored the watch UI around a Pebble-inspired monochrome visual language: high-contrast black and white surfaces, sharper primitive icons, simpler panels, and calmer motion.
 - Added more detailed watchfaces, including dedicated GM and GN faces, plus richer digital, analog, wallet, and minimal faces.
 - Animated the GM/GN faces: GN now has a drifting moon phase with twinkling stars, and GM now has a monochrome sunrise scene with pulsing rays.
+- Smoothed the GM/GN animation loop: GM now uses an infinite wrapping sunrise-and-cloud wallpaper with a larger GM mark, while GN now uses a more stable moon, drifting stars, and falling stars.
 - Reduced visual lag by raising the ST7789 SPI display path to 40 MHz, sending larger flush stripes, and pacing redraws so static screens are not rendered every frame.
+- Added monochrome system transition wipes for app/menu changes and refactored the lock screen into the same inverse black/white roulette style.
 - Updated wallet, receive, transaction review, settings, stats, onboarding, and game surfaces to feel more coherent on the 240 x 240 display.
 - Expanded the signing review screen so SolWear can show sender, recipient, amount, network, fee, and a final trusted-sign confirmation step.
 - Moved NFC on/off to a deliberate 5-second K1 hold and wallet lock to a deliberate 5-second K4 hold to reduce accidental security-state changes.
