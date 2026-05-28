@@ -1,0 +1,19 @@
+[package]
+name = "solwear-st-app"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "solwear_st_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+solwear-st-core = { path = "../crates/solwear-st-core" }
+tauri = { version = "2.0", features = [] }

@@ -1,0 +1,17 @@
+[package]
+name = "solwear-st-cli"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "solwear_st"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+solwear-st-core = { path = "../solwear-st-core" }
+time.workspace = true

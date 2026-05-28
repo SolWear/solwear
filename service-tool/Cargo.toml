@@ -1,0 +1,21 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/solwear-st-core",
+    "crates/solwear-st-cli",
+    "src-tauri",
+]
+
+[workspace.package]
+edition = "2021"
+license = "Proprietary"
+repository = "https://github.com/SolWear/solwear_service_tool"
+
+[workspace.dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serialport = "4.6"
+thiserror = "2.0"
+time = { version = "0.3", features = ["formatting", "local-offset"] }
